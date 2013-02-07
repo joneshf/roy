@@ -371,6 +371,16 @@ exports.nodes = {
             }
         };
     },
+    Constructor: function(constructor, values) {
+        this.constructor = constructor;
+        this.values = values;
+
+        this.accept = function(a) {
+            if(a.visitConstructor) {
+                return a.visitConstructor(this);
+            }
+        };
+    },
     Tuple: function(values) {
         this.values= values;
 

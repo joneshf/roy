@@ -149,7 +149,7 @@ var compileNodeWithEnv = function(n, env, opts) {
                 getIndent(1) + "} else {\n" +
                 getIndent(2) + compiledIfFalseInit + "return " + compiledIfFalseLast + ";\n" + compiledIfFalseEndComments +
                 getIndent(1) + "}\n" +
-                getIndent() + "})()";
+                getIndent() + "}).call(this)";
         },
         // Let binding to JavaScript variable.
         visitLet: function() {
@@ -377,6 +377,10 @@ var compileNodeWithEnv = function(n, env, opts) {
                 typeClassAccessor = n.typeClassInstance + '.';
             }
             return typeClassAccessor + n.value;
+        },
+        visitConstructor: function() {
+            return 'new ' + compileNode(n.constructor) +
+                '(' + _.map(n.values, compileNode).join(', ') + ')';
         },
         visitNumber: function() {
             return n.value;

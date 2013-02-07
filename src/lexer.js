@@ -49,6 +49,7 @@ var identifierToken = function() {
         case 'macro':
         case 'with':
         case 'where':
+        case 'new':
             name = value.toUpperCase();
             break;
         default:

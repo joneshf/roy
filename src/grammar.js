@@ -64,7 +64,9 @@ var grammar = {
             ["LAMBDA paramList optType RIGHTARROW block", n("$$ = new yy.Function(undefined, $2, $5, $3);")],
             ["MATCH innerExpression INDENT caseList outdentOrEof", n("$$ = new yy.Match($2, $4);")],
             ["DO innerExpression doBlock", n("$$ = new yy.Do($2, $3);")],
-            ["ifThenElse", "$$ = $1;"]
+            ["ifThenElse", "$$ = $1;"],
+            ["NEW accessor", n("$$ = new yy.Constructor($2, []);")],
+            ["NEW accessor argList", n("$$ = new yy.Constructor($2, $3);")]
         ],
         "callArgument": [
             ["( expression )", n("$$ = new yy.Expression($2);")],
