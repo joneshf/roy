@@ -1,0 +1,155 @@
+let app () =
+
+  let Todo = Backbone.Model.extend {
+    defaults: λ() → {
+        title: "empty todo..."
+        order: Todos.nextOrder()
+        done: false
+      }
+
+    initialize: λ() →
+      if !(this.get 'title') then
+        this.set {title: (this.defaults()).title}
+      else
+        console.log 'It should not be necessary to include an else branch.'
+
+    toggle: λ() → this.save {done: !(this.get 'done')}
+  }
+
+  let TodoList = Backbone.Collection.extend {
+    model: Todo
+
+    localStorage: new Backbone.LocalStorage 'todos-backbone'
+
+    done: λ() → this.filter (λ todo → todo.get 'done')
+
+    remaining: λ() → this.without.apply this (this.done())
+
+    nextOrder: λ() →
+      if this.length == 0 then
+        1
+      else
+        ((this.last()).get 'order') + 1
+
+    comparator: λ todo → todo.get 'order'
+  }
+
+  let Todos = new TodoList
+
+  let TodoView = Backbone.View.extend {
+    tagName: 'li'
+
+    template: _.template (($ '#item-template').html())
+
+    events: {
+      'click .toggle': 'toggleDone'
+      'dblclick .view': 'edit'
+      'click a.destroy': 'clear'
+      'keypress .edit': 'updateOnEnter'
+      'blur .edit': 'close'
+    }
+
+    initialize: λ() →
+      this.listenTo this.model 'change' this.render
+      this.listenTo this.model 'destroy' this.remove
+
+    render: λ() →
+      this.$el.html(this.template (this.model.toJSON()))
+      this.$el.toggleClass 'done' (this.model.get 'done')
+      (_ this).extend {input: (this.$ '.edit')}
+      this
+
+    toggleDone: λ() →
+      this.model.toggle()
+
+    edit: λ() →
+      this.$el.addClass 'editing'
+      this.input.focus()
+
+    close: λ() →
+      let value = this.input.val()
+      if !(value) then
+        this.clear()
+      else
+        this.model.save {title: value}
+        this.$el.removeClass 'editing'
+
+    updateOnEnter: λ e →
+      if e.keyCode == 13 then
+        this.close()
+      else
+        console.log 'Nothing to do.'
+
+    clear: λ() →
+      this.model.destroy()
+  }
+
+  let AppView = Backbone.View.extend {
+    el: $ '#todoapp'
+
+    statsTemplate: _.template (($ '#stats-template').html())
+
+    events: {
+      'keypress #new-todo': 'createOnEnter'
+      'click #clear-completed': 'clearCompleted'
+      'click #toggle-all': 'toggleAllComplete'
+    }
+
+    initialize: λ() →
+      (_ this).extend {input: this.$ '#new-todo'}
+      (_ this).extend {allCheckbox: (this.$ '#toggle-all') @ 0}
+
+      this.listenTo Todos 'add' this.addOne
+      this.listenTo Todos 'reset' this.addAll
+      this.listenTo Todos 'all' this.render
+
+      (_ this).extend {footer: this.$ 'footer'}
+      (_ this).extend {main: $ '#main'}
+
+      Todos.fetch()
+
+    render: λ() →
+      let done = (Todos.done()).length
+      let remaining = (Todos.remaining()).length
+
+      if Todos.length > 0 then
+        this.main.show()
+        this.footer.show()
+        this.footer.html (this.statsTemplate {
+          done: done
+          remaining: remaining
+        })
+      else
+        this.main.hide()
+        this.footer.hide()
+
+      (_ this.allCheckbox).extend {checked: !(remaining)}
+
+    addOne: λ todo →
+      let view = new TodoView {model: todo}
+      (this.$ '#todo-list').append (view.render()).el
+
+    addAll: λ() →
+      Todos.each this.addOne this
+
+    createOnEnter: λ e →
+      if e.keyCode == 13 && (this.input.val()) then
+        Todos.create {title: this.input.val()}
+        this.input.val ''
+      else
+        console.log 'Do nothing'
+
+    clearCompleted: λ() →
+      _.invoke (Todos.done()) 'destroy'
+      false
+
+    toggleAllComplete: λ() →
+      let done = this.allCheckbox.checked
+      Todos.each (λ todo → todo.save {'done': done})
+  }
+
+  let App = new AppView
+
+  null
+
+$ app
